@@ -18,7 +18,7 @@ def import_tasks(
     return client.import_tasks(str(project_id), tasks)
 
 @mcp.tool(
-    description="List tasks for a given Label Studio project. Supports pagination with custom page sizes via 'page' and 'page_size' parameters. Supports filtering via the 'filters' parameter. Annotation results can be included in the response by using the appropriate query parameters. Each response includes pagination metadata (total, next, previous) to help navigate through all tasks."
+    description="List tasks for a given Label Studio project. This endpoint is paginated: use the 'page' parameter to fetch each page in sequence, starting from 1. Supports custom page sizes via 'page_size'. To retrieve all tasks, keep incrementing 'page' and calling this tool until the 'next' field in the response is null. Each response contains 'tasks', 'total', 'next', and 'previous' fields. Filtering is supported via the 'filters' parameter. Annotation results can be included in the response by using the appropriate query parameters."
 )
 @mcp_tool_error_handler
 def list_tasks(
