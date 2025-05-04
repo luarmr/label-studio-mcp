@@ -20,7 +20,7 @@ def list_project_users(project_id: str) -> list:
     if not project_id:
         raise ValueError("project_id is required.")
     client = LabelStudioClient()
-    endpoint = f"/api/projects/{project_id}/users/"
+    endpoint = f"/api/projects/{project_id}/members/"
     return client.get(endpoint)
 
 @mcp.tool(
