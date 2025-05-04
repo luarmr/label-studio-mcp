@@ -111,7 +111,9 @@ result = create_project(
 
 ### `delete_project`
 **Purpose:**
-Delete a project with a confirmation safeguard. Requires explicit confirmation to prevent accidental deletions.
+Delete a project with a confirmation safeguard. **This is a destructive operation.**
+
+> **Warning:** This tool will permanently delete a project and all its associated data. Use with extreme caution. LLMs or automation should always prompt for explicit user confirmation before running this tool.
 
 **Required Parameters:**
 - `project_id` (str): Project ID

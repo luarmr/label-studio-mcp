@@ -139,7 +139,8 @@ def update_label_config(project_id: str, label_config: str) -> dict:
     return client.patch(endpoint, json=payload)
 
 @mcp.tool(
-    description="Delete a project with confirmation safeguard. Requires project_id and confirm=True."
+    description="Delete a project with confirmation safeguard. Requires project_id and confirm=True.",
+    tags={"destructive"}
 )
 @mcp_tool_error_handler
 def delete_project(project_id: str, confirm: bool = False) -> dict:
