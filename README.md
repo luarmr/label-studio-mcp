@@ -1,71 +1,28 @@
 # MCP Tools Documentation
 
+_Version: 1.0_
+_Last updated: 2024-06-05_
+
 This document provides comprehensive documentation for all Model Context Protocol (MCP) tools implemented in this project. Each tool is described with its purpose, parameters, usage, example requests/responses, error cases, and workflow context.
 
 ---
 
 ## Table of Contents
-- [list_projects](#list_projects)
-- [create_project](#create_project)
-- [import_tasks](#import_tasks)
-- [validate_label_config](#validate_label_config)
-- [list_tasks](#list_tasks)
-- [export_annotations](#export_annotations)
-- [get_project_progress](#get_project_progress)
-- [list_users](#list_users)
-- [list_project_users](#list_project_users)
-- [whoami](#whoami)
-- [delete_project](#delete_project)
-- [get_project](#get_project)
-- [get_project_guidelines](#get_project_guidelines)
-- [get_label_config](#get_label_config)
-- [set_project_published](#set_project_published)
-- [update_project_settings](#update_project_settings)
-- [update_label_config](#update_label_config)
+- [Project Management Tools](#project-management-tools)
+- [Task Management Tools](#task-management-tools)
+- [Annotation Management Tools](#annotation-management-tools)
+- [User Management Tools](#user-management-tools)
+- [Configuration & Utility Tools](#configuration--utility-tools)
+- [MCP Configuration](#mcp-configuration)
+- [Debugging with MCP Inspector](#debugging-with-mcp-inspector)
 - [Workflow Examples](#workflow-examples)
 - [References & Further Reading](#references--further-reading)
 
 ---
 
-## MCP Configuration
+## Project Management Tools
 
-To run MCP tools, you need to configure your MCP server(s) in your configuration file. Below is an example configuration for a Label Studio MCP server:
-
-```json
-{
-  "mcpServers": {
-    "label-studio": {
-      "command": "~/Code/label-studio-mcp/env/bin/python",
-      "args": [
-        "~/Code/label-studio-mcp/server.py"
-      ],
-      "env": {
-        "LS_BASE_URL": "https://app.humansignal.com/",
-        "LS_API_TOKEN": "<your-api-token>",
-        "LS_AUTH_TYPE": "legacy"
-      }
-    }
-  }
-}
-```
-
-### Field Explanations
-- `mcpServers`: The root object for all MCP server configurations.
-- `label-studio`: The name/key for this MCP server instance (can be any string).
-- `command`: The command to start the MCP server (typically the Python interpreter path from your virtual environment).
-- `args`: Arguments to pass to the command (usually the path to the server script).
-- `env`: Environment variables for the MCP server process:
-  - `LS_BASE_URL`: The base URL of your Label Studio instance. **Replace this with your own Label Studio URL.**
-  - `LS_API_TOKEN`: Your Label Studio API token for authentication. **Replace this with your own API token.**
-  - `LS_AUTH_TYPE`: The authentication type (e.g., `legacy`).
-
-> **Tip:** If you installed this project using `pip install`, a virtual environment is typically created. Make sure to use the Python interpreter from your environment (e.g., `env/bin/python` or the path shown by `which python` inside your venv).
->
-> **Replace all example paths and URLs above with your own local paths and server URLs.**
-
----
-
-## `list_projects`
+### `list_projects`
 **Purpose:**
 List projects from Label Studio. Optionally filter by title (case-insensitive substring match) using the 'title' parameter.
 
@@ -108,9 +65,7 @@ result = list_projects(page=1, title="My Project")
 - Typically called before `list_tasks` or `import_tasks` to select a project
 - Use pagination to handle large numbers of projects efficiently
 
----
-
-## `create_project`
+### `create_project`
 **Purpose:**
 Create a new project in Label Studio. This is the entry point for setting up a new annotation workflow.
 
@@ -154,9 +109,128 @@ result = create_project(
 **Workflow Context:**
 - Use before importing tasks or configuring project settings.
 
+### `delete_project`
+**Purpose:**
+Delete a project with a confirmation safeguard. Requires explicit confirmation to prevent accidental deletions.
+
+**Required Parameters:**
+- `project_id` (str): Project ID
+- `confirm` (bool): Must be set to True to proceed with deletion
+
+**Example Input:**
+```python
+result = delete_project(project_id="42", confirm=True)
+```
+**Example Output:**
+```json
+{
+  "success": true,
+  "message": "Project 42 deleted."
+}
+```
+
+**Error Cases:**
+- Missing confirmation: returns error message
+- Invalid project ID: validation error
+- Network issues: upstream error
+
+**Workflow Context:**
+- Use with caution for project cleanup
+- Always verify project ID before deletion
+
+### `get_project`
+**Purpose:**
+Get project details by ID.
+
+**Required Parameters:**
+- `project_id` (str): Project ID
+
+**Example Input:**
+```python
+result = get_project(project_id="42")
+```
+**Example Output:**
+```json
+{
+  "id": 42,
+  "title": "My Project",
+  "label_config": "<View>...</View>",
+  "created_by": {"email": "user@example.com"}
+}
+```
+
+**Error Cases:**
+- Invalid project ID: validation error
+- Network/API errors: upstream error
+
+**Workflow Context:**
+- Use to retrieve project details
+
+### `update_project_settings`
+**Purpose:**
+Update project settings.
+
+**Required Parameters:**
+- `project_id` (str): Project ID
+- `settings` (dict): Dictionary of project settings
+
+**Example Input:**
+```python
+result = update_project_settings(
+    project_id="42",
+    settings={"title": "New Project Title"}
+)
+```
+**Example Output:**
+```json
+{
+  "success": true,
+  "message": "Project settings updated."
+}
+```
+
+**Error Cases:**
+- Invalid project ID: validation error
+- Network/API errors: upstream error
+
+**Workflow Context:**
+- Use to update project settings
+
+### `set_project_published`
+**Purpose:**
+Set a project's published status.
+
+**Required Parameters:**
+- `project_id` (str): Project ID
+- `published` (bool): True if project should be published, False if not
+
+**Example Input:**
+```python
+result = set_project_published(
+    project_id="42",
+    published=True
+)
+```
+**Example Output:**
+```json
+{
+  "success": true,
+  "message": "Project published status updated."
+}
+```
+
+**Error Cases:**
+- Invalid project ID: validation error
+- Network/API errors: upstream error
+
+**Workflow Context:**
+- Use to publish or unpublish a project
+
 ---
 
-## `import_tasks`
+## Task Management Tools
+
+### `import_tasks`
 **Purpose:**
 Import a list of tasks into a Label Studio project. Each task is a dictionary matching the project's label config.
 
@@ -187,42 +261,7 @@ result = import_tasks(
 **Workflow Context:**
 - Use after creating a project, before annotation begins.
 
----
-
-## `validate_label_config`
-**Purpose:**
-Validate a labeling interface XML config for a given project. Ensures the config is well-formed and compatible with Label Studio.
-
-**Required Parameters:**
-- `project_id` (str): Project ID
-- `label_config` (str): Label config XML string
-
-**Example Input:**
-```python
-result = validate_label_config(
-    project_id="42",
-    label_config="<View>...</View>"
-)
-```
-**Example Output:**
-```json
-{
-  "valid": true,
-  "warnings": [],
-  "errors": []
-}
-```
-
-**Error Cases:**
-- Invalid XML: returns a validation or upstream error.
-- Project not found: upstream error.
-
-**Workflow Context:**
-- Use before updating a project's label config or when designing new annotation workflows.
-
----
-
-## `list_tasks`
+### `list_tasks`
 **Purpose:**
 List tasks for a given Label Studio project. Supports pagination, filtering, and includes annotation results when requested.
 
@@ -276,7 +315,9 @@ result = list_tasks(
 
 ---
 
-## `export_annotations`
+## Annotation Management Tools
+
+### `export_annotations`
 **Purpose:**
 Export annotations for a given Label Studio project. Supports multiple formats (JSON, CSV, etc.).
 
@@ -311,9 +352,7 @@ result = export_annotations(
 **Workflow Context:**
 - Use to back up, analyze, or transfer annotation data.
 
----
-
-## `get_project_progress`
+### `get_project_progress`
 **Purpose:**
 Extract and return progress metrics from a project's details. Useful for monitoring project status and completion rates.
 
@@ -353,7 +392,9 @@ result = get_project_progress(project_id="42")
 
 ---
 
-## `list_users`
+## User Management Tools
+
+### `list_users`
 **Purpose:**
 List users from Label Studio. Supports pagination to handle large numbers of users efficiently.
 
@@ -398,9 +439,7 @@ result = list_users(page=1, page_size=20)
 - Helpful for user management tasks
 - Use pagination to handle large numbers of users efficiently
 
----
-
-## `list_project_users`
+### `list_project_users`
 **Purpose:**
 List all users assigned to a specific project. Useful for managing project access and permissions.
 
@@ -427,9 +466,7 @@ result = list_project_users(project_id="42")
 - Use to review project access
 - Helpful for project team management
 
----
-
-## `whoami`
+### `whoami`
 **Purpose:**
 Get information about the currently authenticated user. Useful for verifying authentication and user context.
 
@@ -460,75 +497,42 @@ result = whoami()
 
 ---
 
-## `delete_project`
+## Configuration & Utility Tools
+
+### `validate_label_config`
 **Purpose:**
-Delete a project with a confirmation safeguard. Requires explicit confirmation to prevent accidental deletions.
+Validate a labeling interface XML config for a given project. Ensures the config is well-formed and compatible with Label Studio.
 
 **Required Parameters:**
 - `project_id` (str): Project ID
-- `confirm` (bool): Must be set to True to proceed with deletion
+- `label_config` (str): Label config XML string
 
 **Example Input:**
 ```python
-result = delete_project(project_id="42", confirm=True)
+result = validate_label_config(
+    project_id="42",
+    label_config="<View>...</View>"
+)
 ```
 **Example Output:**
 ```json
 {
-  "success": true,
-  "message": "Project 42 deleted."
+  "valid": true,
+  "warnings": [],
+  "errors": []
 }
 ```
 
 **Error Cases:**
-- Missing confirmation: returns error message
-- Invalid project ID: validation error
-- Network issues: upstream error
+- Invalid XML: returns a validation or upstream error.
+- Project not found: upstream error.
 
 **Workflow Context:**
-- Use with caution for project cleanup
-- Always verify project ID before deletion
+- Use before updating a project's label config or when designing new annotation workflows.
 
----
-
-## `get_project`
+### `get_project_guidelines`
 **Purpose:**
-Fetch and return complete project details from the Label Studio API.
-
-**Required Parameters:**
-- `project_id` (str): Project ID
-
-**Example Input:**
-```python
-result = get_project(project_id="42")
-```
-**Example Output:**
-```json
-{
-  "id": 42,
-  "title": "My Project",
-  "description": "Project description",
-  "label_config": "<View>...</View>",
-  "expert_instruction": "Annotation guidelines",
-  "created_by": {"email": "user@example.com"},
-  "created_at": "2024-03-20T10:00:00Z",
-  "is_published": true
-}
-```
-
-**Error Cases:**
-- Invalid project ID: validation error
-- Project not found: upstream error
-
-**Workflow Context:**
-- Use to get complete project information
-- Helpful for project inspection and management
-
----
-
-## `get_project_guidelines`
-**Purpose:**
-Extract and return only the guidelines section from the project details.
+Get project guidelines for a given project.
 
 **Required Parameters:**
 - `project_id` (str): Project ID
@@ -540,7 +544,7 @@ result = get_project_guidelines(project_id="42")
 **Example Output:**
 ```json
 {
-  "guidelines": "Detailed annotation guidelines for the project..."
+  "guidelines": "Follow these guidelines for annotating the project."
 }
 ```
 
@@ -549,14 +553,11 @@ result = get_project_guidelines(project_id="42")
 - No guidelines found: returns warning message
 
 **Workflow Context:**
-- Use to review project annotation guidelines
-- Helpful for quality control and training
+- Use to provide project guidelines to annotators
 
----
-
-## `get_label_config`
+### `get_label_config`
 **Purpose:**
-Extract and return only the label configuration from the project details.
+Get label config for a given project.
 
 **Required Parameters:**
 - `project_id` (str): Project ID
@@ -568,7 +569,7 @@ result = get_label_config(project_id="42")
 **Example Output:**
 ```json
 {
-  "label_config": "<View><Text name=\"text\" value=\"$text\"/><Choices name=\"sentiment\" toName=\"text\"><Choice value=\"Positive\"/><Choice value=\"Negative\"/></Choices></View>"
+  "label_config": "<View>...</View>"
 }
 ```
 
@@ -577,88 +578,15 @@ result = get_label_config(project_id="42")
 - No label config found: returns warning message
 
 **Workflow Context:**
-- Use to review project labeling interface
-- Helpful for configuration management
+- Use to retrieve project label config
 
----
-
-## `set_project_published`
+### `update_label_config`
 **Purpose:**
-Set the published status of a project (publish/unpublish).
+Update label config for a given project.
 
 **Required Parameters:**
 - `project_id` (str): Project ID
-- `published` (bool): True to publish, False to unpublish
-
-**Example Input:**
-```python
-result = set_project_published(project_id="42", published=True)
-```
-**Example Output:**
-```json
-{
-  "id": 42,
-  "is_published": true
-}
-```
-
-**Error Cases:**
-- Invalid project ID: validation error
-- Invalid published status: validation error
-
-**Workflow Context:**
-- Use to control project visibility
-- Helpful for project lifecycle management
-
----
-
-## `update_project_settings`
-**Purpose:**
-Update project settings and guidelines.
-
-**Required Parameters:**
-- `project_id` (str): Project ID
-
-**Optional Parameters:**
-- `title` (str): New project title
-- `description` (str): New project description
-- `expert_instruction` (str): New annotation guidelines
-
-**Example Input:**
-```python
-result = update_project_settings(
-    project_id="42",
-    title="Updated Title",
-    description="New description"
-)
-```
-**Example Output:**
-```json
-{
-  "id": 42,
-  "title": "Updated Title",
-  "description": "New description"
-}
-```
-
-**Error Cases:**
-- Invalid project ID: validation error
-- No fields provided: validation error
-- Invalid field values: upstream error
-
-**Workflow Context:**
-- Use to modify project metadata
-- Helpful for project maintenance
-
----
-
-## `update_label_config`
-**Purpose:**
-Update the label configuration for a project.
-
-**Required Parameters:**
-- `project_id` (str): Project ID
-- `label_config` (str): New label configuration XML
+- `label_config` (str): Updated label config XML string
 
 **Example Input:**
 ```python
@@ -670,92 +598,130 @@ result = update_label_config(
 **Example Output:**
 ```json
 {
-  "id": 42,
-  "label_config": "<View>...</View>"
+  "success": true,
+  "message": "Label config updated."
 }
 ```
 
 **Error Cases:**
 - Invalid project ID: validation error
-- Invalid label config: validation error
-- Network issues: upstream error
+- Invalid label config XML: validation error
+- Network/API errors: upstream error
 
 **Workflow Context:**
-- Use to modify project labeling interface
-- Helpful for interface evolution
+- Use to update project label config
 
 ---
 
-## Error Handling
-All tools return errors in a consistent format:
+## MCP Configuration
+
+To run MCP tools, you need to configure your MCP server(s) in your configuration file. Below is an example configuration for a Label Studio MCP server:
+
 ```json
 {
-  "error": {
-    "type": "validation_error|upstream_error|internal_error",
-    "message": "Error message",
-    "status_code": 400|502|500,
-    "details": null
+  "mcpServers": {
+    "label-studio": {
+      "command": "~/Code/label-studio-mcp/env/bin/python",
+      "args": [
+        "~/Code/label-studio-mcp/server.py"
+      ],
+      "env": {
+        "LS_BASE_URL": "https://app.humansignal.com/",
+        "LS_API_TOKEN": "<your-api-token>",
+        "LS_AUTH_TYPE": "legacy"
+      }
+    }
   }
 }
 ```
 
-**Example Error Response:**
-```json
-{
-  "error": {
-    "type": "validation_error",
-    "message": "project_id is required.",
-    "status_code": 400,
-    "details": null
-  }
-}
-```
+### Field Explanations
+- `mcpServers`: The root object for all MCP server configurations.
+- `label-studio`: The name/key for this MCP server instance (can be any string).
+- `command`: The command to start the MCP server (typically the Python interpreter path from your virtual environment).
+- `args`: Arguments to pass to the command (usually the path to the server script).
+- `env`: Environment variables for the MCP server process:
+  - `LS_BASE_URL`: The base URL of your Label Studio instance. **Replace this with your own Label Studio URL.**
+  - `LS_API_TOKEN`: Your Label Studio API token for authentication. **Replace this with your own API token.**
+  - `LS_AUTH_TYPE`: The authentication type (e.g., `legacy`).
+
+> **Tip:** If you installed this project using `pip install`, a virtual environment is typically created. Make sure to use the Python interpreter from your environment (e.g., `env/bin/python` or the path shown by `which python` inside your venv).
+>
+> **Replace all example paths and URLs above with your own local paths and server URLs.**
 
 ---
 
-## Best Practices
-- Always validate required parameters before calling a tool.
-- Handle errors using the provided error format.
-- Refer to this documentation for parameter types and example usage.
-- For advanced workflows, chain tools as needed (e.g., create_project → import_tasks → export_annotations).
-- Use `list_projects` and `list_tasks` to discover IDs before calling other tools.
-- Validate label configs before updating projects.
-- Review error messages for actionable feedback.
+## Debugging with MCP Inspector
+
+To debug your MCP server using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector), launch your server with Inspector and the required environment variables:
+
+```bash
+LS_BASE_URL=<your-label-studio-url> \
+LS_API_TOKEN=<your-label-studio-api-token> \
+LS_AUTH_TYPE=legacy \
+npx @modelcontextprotocol/inspector env/bin/python server.py
+```
+
+**Environment variables:**
+- `LS_BASE_URL`: The base URL of your Label Studio instance (e.g., `http://127.0.0.1:8080` or your cloud URL).
+- `LS_API_TOKEN`: Your Label Studio API token for authentication. **Keep this token secure and do not share it publicly.**
+- `LS_AUTH_TYPE`: The authentication type (usually `legacy`).
+
+**Notes:**
+- Replace the placeholder values (`<your-label-studio-url>`, `<your-label-studio-api-token>`) with your actual instance URL and API token.
+- This command assumes your Python virtual environment is in `env/` and your server entry point is `server.py`.
+- Running this command will start your MCP server under Inspector, allowing you to interactively test and debug all MCP tools and endpoints.
+
+### Troubleshooting Inspector
+- If Inspector cannot connect, check:
+  - Your MCP server is running and accessible.
+  - Environment variables are set correctly.
+  - The correct Python interpreter and script path are used.
+  - Your Label Studio instance is reachable from your machine.
 
 ---
 
 ## Workflow Examples
 
-### End-to-End Project Setup and Annotation
-
+### Example 1: Project Management
 ```python
-# 1. Create a new project
-project = create_project(title="Video Project", label_config="<View>...</View>")
-project_id = project["id"]
-
-# 2. Import tasks
-import_tasks(project_id=project_id, tasks=[{"video": "https://samplelib.com/mp4/sample-5s.mp4"}])
-
-# 3. List tasks
-tasks = list_tasks(project_id=project_id)
-
-# 4. Export annotations
-export = export_annotations(project_id=project_id, exportType="JSON")
+result = list_projects(page=1, title="My Project")
 ```
 
-### Label Config Validation Before Update
+### Example 2: Task Management
 ```python
-validate_label_config(project_id=project_id, label_config="<View>...</View>")
+result = import_tasks(
+    project_id="42",
+    tasks=[{"video": "https://samplelib.com/mp4/sample-5s.mp4"}]
+)
+```
+
+### Example 3: Annotation Management
+```python
+result = export_annotations(
+    project_id="42",
+    exportType="JSON"
+)
+```
+
+### Example 4: User Management
+```python
+result = list_users(page=1, page_size=20)
+```
+
+### Example 5: Configuration & Utility Tools
+```python
+result = validate_label_config(
+    project_id="42",
+    label_config="<View>...</View>"
+)
 ```
 
 ---
 
 ## References & Further Reading
 
-- [Label Studio API Documentation](https://labelstud.io/api)
-- [Task Master MCP Rules](../.cursor/rules/taskmaster.mdc)
-- [Development Workflow Guide](../.cursor/rules/dev_workflow.mdc)
-- [Self-Improvement & Rule Maintenance](../.cursor/rules/self_improve.mdc)
-- [Cursor Rule Format](../.cursor/rules/cursor_rules.mdc)
-- [Project PRD Example](../scripts/example_prd.txt)
-- [Second PRD (Project Admin/Analytics)](../scripts/second.prd) 
+- [Model Context Protocol](https://github.com/modelcontextprotocol)
+- [Label Studio](https://label-studio.org)
+- [Python Documentation](https://docs.python.org)
+- [MCP Inspector](https://github.com/modelcontextprotocol/inspector)
